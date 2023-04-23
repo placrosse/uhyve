@@ -119,6 +119,10 @@ pub trait VirtualCPU {
 					Hypercall::Cmdval(syscmdval)
 				}
 				HypercallAddress::Uart => Hypercall::SerialWriteByte(data as u8),
+				HypercallAddress::SerialWriteBuffer => {
+					let syscmdval = unsafe { &*(self.host_address(data) as *const SerialWriteBufferParams) };
+					Hypercall::SerialWriteBuffer(syscmdval)
+				}
 				_ => unimplemented!(),
 			})
 		} else {
