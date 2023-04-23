@@ -378,6 +378,9 @@ impl VirtualCPU for UhyveCPU {
 								Hypercall::FileWrite(syswrite) => self.write(syswrite)?,
 								Hypercall::FileUnlink(sysunlink) => self.unlink(sysunlink),
 								Hypercall::SerialWriteByte(buf) => self.uart(&[buf])?,
+								Hypercall::SerialWriteBuffer(sysserialwrite) => {
+									self.uart_buffer(sysserialwrite)?
+								}
 								_ => panic!("Got unknown hypercall {:?}", hypercall),
 							};
 						} else {
