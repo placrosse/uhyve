@@ -275,6 +275,7 @@ impl VirtualCPU for UhyveCPU {
 	}
 
 	fn host_address(&self, addr: usize) -> usize {
+		// TODO: Check that we don't have an out ouf bounds read (stay inside vm memory)
 		addr + self.vm_start
 	}
 
