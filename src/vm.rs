@@ -16,6 +16,8 @@ use crate::linux::x86_64::kvm_cpu::KvmCpu;
 use crate::{arch, consts::*, os::HypervisorError};
 
 pub type HypervisorResult<T> = Result<T, HypervisorError>;
+#[cfg(all(target_arch = "x86_64", target_os = "macos"))]
+use crate::macos::x86_64::vcpu::XhyveCpu;
 
 #[derive(Error, Debug)]
 pub enum LoadKernelError {
