@@ -24,7 +24,7 @@ use x86_64::{
 
 use crate::{
 	consts::*,
-	linux::{vcpu::*, virtio::*, KVM},
+	linux::{x86_64::kvm_cpu::UhyveCPU, virtio::*, KVM},
 	params::Params,
 	vm::{HypervisorResult, Vm},
 	x86_64::create_gdt_entry,

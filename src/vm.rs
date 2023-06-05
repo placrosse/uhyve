@@ -20,8 +20,11 @@ use crate::arch::x86_64::{
 use crate::{
 	arch,
 	consts::*,
-	os::{vcpu::UhyveCPU, DebugExitInfo, HypervisorError},
+	os::{DebugExitInfo, HypervisorError},
 };
+
+#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
+use crate::linux::x86_64::kvm_cpu::UhyveCPU;
 
 pub type HypervisorResult<T> = Result<T, HypervisorError>;
 
