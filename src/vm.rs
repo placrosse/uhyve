@@ -24,7 +24,7 @@ use crate::{
 };
 
 #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
-use crate::linux::x86_64::kvm_cpu::UhyveCPU;
+use crate::linux::x86_64::kvm_cpu::KvmCpu;
 
 pub type HypervisorResult<T> = Result<T, HypervisorError>;
 
@@ -315,7 +315,7 @@ pub trait Vm {
 	fn set_stack_address(&mut self, stack_addresss: u64);
 	fn stack_address(&self) -> u64;
 	fn kernel_path(&self) -> &Path;
-	fn create_cpu(&self, id: u32) -> HypervisorResult<UhyveCPU>;
+	fn create_cpu(&self, id: u32) -> HypervisorResult<KvmCpu>;
 	fn set_boot_info(&mut self, header: *const RawBootInfo);
 	fn verbose(&self) -> bool;
 	fn init_guest_mem(&self);
