@@ -42,6 +42,7 @@ instrument = ["rftrace", "rftrace-frontend"]
 [dependencies]
 byte-unit = { version = "4.0", default-features = false, features = ["std"] }
 clap = { version = "4.3", features = ["derive", "env"] }
+nix = "0.26"
 core_affinity = "0.8"
 either = "1.8"
 env_logger = "0.10"
@@ -62,7 +63,6 @@ rftrace-frontend = { version = "0.1", optional = true }
 kvm-bindings = "0.6"
 kvm-ioctls = "0.12"
 mac_address = "1.1"
-nix = "0.26"
 tun-tap = { version = "0.1", default-features = false }
 virtio-bindings = { version = "0.2", features = ["virtio-v4_14_0"] }
 vmm-sys-util = "0.11"
