@@ -75,8 +75,7 @@ impl MmapMemory {
 		}
 	}
 
-	#[allow(dead_code)]
-	fn as_slice_mut(&mut self) -> &mut [u8] {
+	pub fn as_slice_mut(& self) -> &mut [u8] {
 		unsafe { std::slice::from_raw_parts_mut(self.host_address as *mut u8, self.memory_size) }
 	}
 }
