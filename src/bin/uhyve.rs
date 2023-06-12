@@ -11,7 +11,7 @@ use either::Either;
 use thiserror::Error;
 use uhyvelib::{
 	params::{CpuCount, GuestMemorySize, Params},
-	Uhyve,
+	vm::UhyveVm,
 };
 
 #[cfg(feature = "instrument")]
@@ -55,7 +55,6 @@ struct Args {
 	///
 	/// Starts a GDB server on the provided port and waits for a connection.
 	#[clap(short = 's', long, env = "HERMIT_GDB_PORT")]
-	#[cfg(target_os = "linux")]
 	gdb_port: Option<u16>,
 
 	/// The kernel to execute
@@ -245,7 +244,6 @@ impl From<Args> for Params {
 					pit,
 					affinity: _,
 				},
-			#[cfg(target_os = "linux")]
 			gdb_port,
 			kernel: _,
 			kernel_args,
@@ -260,7 +258,6 @@ impl From<Args> for Params {
 			cpu_count,
 			#[cfg(target_os = "linux")]
 			pit,
-			#[cfg(target_os = "linux")]
 			gdb_port,
 			kernel_args,
 		}
@@ -279,7 +276,7 @@ fn run_uhyve() -> i32 {
 	let affinity = args.cpu_args.clone().get_affinity(&mut app);
 	let params = Params::from(args);
 
-	Uhyve::new(kernel, params)
+	UhyveVm::new(kernel, params)
 		.expect("Unable to create VM! Is the hypervisor interface (e.g. KVM) activated?")
 		.run(affinity)
 }

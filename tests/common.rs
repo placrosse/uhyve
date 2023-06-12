@@ -5,7 +5,7 @@ use std::{
 };
 
 use byte_unit::Byte;
-use uhyvelib::{params::Params, Uhyve};
+use uhyvelib::{params::Params, vm::UhyveVm};
 
 /// Uses Cargo to build a kernel in the `tests/test-kernels` directory.
 /// Returns a path to the build binary.
@@ -45,6 +45,6 @@ pub fn run_simple_vm(kernel_path: PathBuf) {
 		memory_size: Byte::from_bytes(32 * 1024 * 1024).try_into().unwrap(),
 		..Default::default()
 	};
-	let code = Uhyve::new(kernel_path, params).unwrap().run(None);
+	let code = UhyveVm::new(kernel_path, params).unwrap().run(None);
 	assert_eq!(0, code);
 }
