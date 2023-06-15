@@ -1,4 +1,4 @@
-use std::{mem::MaybeUninit, os::raw::c_void};
+use std::{mem::MaybeUninit, ops::Index, os::raw::c_void};
 
 use log::debug;
 use nix::sys::mman::*;
@@ -89,5 +89,15 @@ impl Drop for MmapMemory {
 				munmap(self.host_address as *mut c_void, self.memory_size).unwrap();
 			}
 		}
+	}
+}
+
+impl Index<usize> for MmapMemory {
+	type Output = u8;
+
+	#[inline(always)]
+	fn index(&self, index: usize) -> &Self::Output {
+		assert!(index < self.memory_size);
+		unsafe { &*((self.host_address + index) as *const u8) }
 	}
 }
