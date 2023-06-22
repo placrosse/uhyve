@@ -91,6 +91,40 @@ impl MmapMemory {
 		std::slice::from_raw_parts_mut(self.host_address as *mut MaybeUninit<u8>, self.memory_size)
 	}
 
+	/// Read a section of the memory.
+	///
+	/// # Safety
+	///
+	/// This is unsafe, as can create multiple aliasing. During the lifetime of
+	/// the returned slice, the memory must not be altered to prevent undfined
+	/// behaviour.
+	pub unsafe fn slice_at(&self, addr: GuestPhysAddr, len: usize) -> Result<&[u8], MemoryError> {
+		if addr.as_u64() as usize + len >= self.memory_size - self.guest_address {
+			Err(MemoryError::BoundsViolation)
+		} else {
+			Ok(unsafe { std::slice::from_raw_parts(self.host_address(addr)?, len) })
+		}
+	}
+
+	/// Writeable access to a section of the memory.
+	///
+	/// # Safety
+	///
+	/// This is unsafe, as can create multiple aliasing. During the lifetime of
+	/// the returned slice, the memory must not be altered to prevent undfined
+	/// behaviour.
+	pub unsafe fn slice_at_mut(
+		&self,
+		addr: GuestPhysAddr,
+		len: usize,
+	) -> Result<&mut [u8], MemoryError> {
+		if addr.as_u64() as usize + len >= self.memory_size - self.guest_address {
+			Err(MemoryError::BoundsViolation)
+		} else {
+			Ok(unsafe { std::slice::from_raw_parts_mut(self.host_address(addr)? as *mut u8, len) })
+		}
+	}
+
 	/// Returns the host address of the given internal physical address in the
 	/// memory, if the address is valid.
 	pub fn host_address(&self, addr: GuestPhysAddr) -> Result<*const u8, MemoryError> {
