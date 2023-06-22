@@ -71,7 +71,7 @@ pub struct UhyveVm<VCpuType: VirtualCPU> {
 	offset: u64,
 	entry_point: u64,
 	stack_address: u64,
-	mem: MmapMemory,
+	pub mem: MmapMemory,
 	num_cpus: u32,
 	path: PathBuf,
 	args: Vec<OsString>,
