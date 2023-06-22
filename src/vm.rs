@@ -192,7 +192,7 @@ impl<VCpuType: VirtualCPU> UhyveVm<VCpuType> {
 		let kernel_end_address = kernel_start_address + object.mem_size();
 		self.set_offset(kernel_start_address as u64);
 
-		if kernel_end_address > self.mem.memory_size - self.mem.guest_address {
+		if kernel_end_address > self.mem.memory_size - self.mem.guest_address.as_u64() as usize {
 			return Err(LoadKernelError::InsufficientMemory);
 		}
 
@@ -209,7 +209,8 @@ impl<VCpuType: VirtualCPU> UhyveVm<VCpuType> {
 
 		let boot_info = BootInfo {
 			hardware_info: HardwareInfo {
-				phys_addr_range: arch::RAM_START..arch::RAM_START + self.mem.memory_size as u64,
+				phys_addr_range: arch::RAM_START.as_u64()
+					..arch::RAM_START.as_u64() + self.mem.memory_size as u64,
 				serial_port_base: self.verbose().then(|| {
 					SerialPortBase::new((uhyve_interface::HypercallAddress::Uart as u16).into())
 						.unwrap()

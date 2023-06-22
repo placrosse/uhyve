@@ -19,7 +19,7 @@ pub struct MmapMemory {
 	// TODO: make private
 	pub flags: u32,
 	pub memory_size: usize,
-	pub guest_address: usize,
+	pub guest_address: GuestPhysAddr,
 	pub host_address: usize,
 }
 
@@ -27,7 +27,7 @@ impl MmapMemory {
 	pub fn new(
 		flags: u32,
 		memory_size: usize,
-		guest_address: u64,
+		guest_address: GuestPhysAddr,
 		huge_pages: bool,
 		mergeable: bool,
 	) -> MmapMemory {
@@ -74,7 +74,7 @@ impl MmapMemory {
 		MmapMemory {
 			flags,
 			memory_size,
-			guest_address: guest_address as usize,
+			guest_address,
 			host_address: host_address as usize,
 		}
 	}
@@ -99,7 +99,7 @@ impl MmapMemory {
 	/// the returned slice, the memory must not be altered to prevent undfined
 	/// behaviour.
 	pub unsafe fn slice_at(&self, addr: GuestPhysAddr, len: usize) -> Result<&[u8], MemoryError> {
-		if addr.as_u64() as usize + len >= self.memory_size - self.guest_address {
+		if addr.as_u64() as usize + len >= self.memory_size - self.guest_address.as_u64() as usize {
 			Err(MemoryError::BoundsViolation)
 		} else {
 			Ok(unsafe { std::slice::from_raw_parts(self.host_address(addr)?, len) })
@@ -118,7 +118,7 @@ impl MmapMemory {
 		addr: GuestPhysAddr,
 		len: usize,
 	) -> Result<&mut [u8], MemoryError> {
-		if addr.as_u64() as usize + len >= self.memory_size - self.guest_address {
+		if addr.as_u64() as usize + len >= self.memory_size - self.guest_address.as_u64() as usize {
 			Err(MemoryError::BoundsViolation)
 		} else {
 			Ok(unsafe { std::slice::from_raw_parts_mut(self.host_address(addr)? as *mut u8, len) })
@@ -128,12 +128,12 @@ impl MmapMemory {
 	/// Returns the host address of the given internal physical address in the
 	/// memory, if the address is valid.
 	pub fn host_address(&self, addr: GuestPhysAddr) -> Result<*const u8, MemoryError> {
-		if (addr.as_u64() as usize) < self.guest_address
-			|| addr.as_u64() as usize > self.guest_address + self.memory_size
+		if addr < self.guest_address
+			|| addr.as_u64() as usize > self.guest_address.as_u64() as usize + self.memory_size
 		{
 			return Err(MemoryError::WrongMemoryError);
 		}
-		Ok((self.host_address + addr.as_u64() as usize - self.guest_address) as *const u8)
+		Ok((self.host_address + (addr - self.guest_address) as usize) as *const u8)
 	}
 
 	/// Read the value in the memory at the given address
@@ -169,7 +169,7 @@ mod tests {
 
 	#[test]
 	fn test_mmap_memory_readwrite() {
-		let mem = MmapMemory::new(0, 40 * PAGE_SIZE, 0x1000, true, true);
+		let mem = MmapMemory::new(0, 40 * PAGE_SIZE, GuestPhysAddr::new(0x1000), true, true);
 		unsafe {
 			mem.as_slice_mut()[0xfe] = 0xaa;
 			mem.as_slice_mut()[0xff] = 0xbb;

@@ -20,7 +20,7 @@ use x86_64::{
 
 use crate::{consts::*, mem::MmapMemory};
 
-pub const RAM_START: u64 = 0x00;
+pub const RAM_START: GuestPhysAddr = GuestPhysAddr::new(0x00);
 const MHZ_TO_HZ: u64 = 1000000;
 const KHZ_TO_HZ: u64 = 1000;
 
@@ -369,7 +369,13 @@ mod tests {
 
 	#[test]
 	fn test_virt_to_phys() {
-		let mem = MmapMemory::new(0, MIN_PAGING_MEM_SIZE * 2, 0, true, true);
+		let mem = MmapMemory::new(
+			0,
+			MIN_PAGING_MEM_SIZE * 2,
+			GuestPhysAddr::new(0),
+			true,
+			true,
+		);
 		initialize_pagetables(unsafe { mem.as_slice_mut() }.try_into().unwrap());
 
 		// Get the address of the first entry in PML4 (the address of the PML4 itself)
