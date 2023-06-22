@@ -2,6 +2,16 @@ use std::{mem::MaybeUninit, ops::Index, os::raw::c_void};
 
 use log::debug;
 use nix::sys::mman::*;
+use thiserror::Error;
+use uhyve_interface::GuestPhysAddr;
+
+#[derive(Error, Debug)]
+pub enum MemoryError {
+	#[error("Memory bounds exceeded")]
+	BoundsViolation,
+	#[error("The desired guest location is not part of this memory")]
+	WrongMemoryError,
+}
 
 /// A general purpose VM memory section that can exploit some Linux Kernel features.
 #[derive(Debug)]
@@ -80,6 +90,22 @@ impl MmapMemory {
 	pub unsafe fn as_slice_uninit_mut(&self) -> &mut [MaybeUninit<u8>] {
 		std::slice::from_raw_parts_mut(self.host_address as *mut MaybeUninit<u8>, self.memory_size)
 	}
+
+	/// Returns the host address of the given internal physical address in the
+	/// memory, if the address is valid.
+	pub fn host_address(&self, addr: GuestPhysAddr) -> Result<*const u8, MemoryError> {
+		if (addr.as_u64() as usize) < self.guest_address
+			|| addr.as_u64() as usize > self.guest_address + self.memory_size
+		{
+			return Err(MemoryError::WrongMemoryError);
+		}
+		Ok((self.host_address + addr.as_u64() as usize - self.guest_address) as *const u8)
+	}
+
+	/// Read the value in the memory at the given address
+	pub fn read<T>(&self, addr: GuestPhysAddr) -> Result<T, MemoryError> {
+		Ok(unsafe { self.host_address(addr)?.cast::<T>().read_unaligned() })
+	}
 }
 
 impl Drop for MmapMemory {
@@ -99,5 +125,33 @@ impl Index<usize> for MmapMemory {
 	fn index(&self, index: usize) -> &Self::Output {
 		assert!(index < self.memory_size);
 		unsafe { &*((self.host_address + index) as *const u8) }
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::consts::PAGE_SIZE;
+
+	#[test]
+	fn test_mmap_memory_readwrite() {
+		let mem = MmapMemory::new(0, 40 * PAGE_SIZE, 0x1000, true, true);
+		unsafe {
+			mem.as_slice_mut()[0xfe] = 0xaa;
+			mem.as_slice_mut()[0xff] = 0xbb;
+			mem.as_slice_mut()[0x100] = 0x78;
+			mem.as_slice_mut()[0x101] = 0x56;
+			mem.as_slice_mut()[0x102] = 0x34;
+			mem.as_slice_mut()[0x103] = 0x12;
+		}
+		assert_eq!(
+			mem.read::<u64>(GuestPhysAddr::new(0x1100)).unwrap(),
+			0x12345678
+		);
+		// unaligned read
+		assert_eq!(
+			mem.read::<u64>(GuestPhysAddr::new(0x10fe)).unwrap(),
+			0x12345678bbaa
+		);
 	}
 }
