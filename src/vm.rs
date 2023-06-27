@@ -66,6 +66,7 @@ fn detect_cpu_freq() -> u32 {
 }
 
 pub struct UhyveVm<VCpuType: VirtualCPU> {
+	/// The starting position of the image in physical memory
 	offset: u64,
 	entry_point: u64,
 	stack_address: u64,
@@ -130,26 +131,13 @@ impl<VCpuType: VirtualCPU> UhyveVm<VCpuType> {
 		self.verbose
 	}
 
-	fn set_offset(&mut self, offset: u64) {
-		self.offset = offset;
-	}
-
 	/// Returns the section offsets relative to their base addresses
 	pub fn get_offset(&self) -> u64 {
 		self.offset
 	}
 
-	/// Sets the elf entry point.
-	fn set_entry_point(&mut self, entry: u64) {
-		self.entry_point = entry;
-	}
-
 	pub fn get_entry_point(&self) -> u64 {
 		self.entry_point
-	}
-
-	fn set_stack_address(&mut self, stack_addresss: u64) {
-		self.stack_address = stack_addresss;
 	}
 
 	pub fn stack_address(&self) -> u64 {
@@ -167,10 +155,6 @@ impl<VCpuType: VirtualCPU> UhyveVm<VCpuType> {
 
 	pub fn args(&self) -> &Vec<OsString> {
 		&self.args
-	}
-
-	fn set_boot_info(&mut self, header: *const RawBootInfo) {
-		self.boot_info = header;
 	}
 
 	/// Initialize the page tables for the guest
@@ -192,7 +176,7 @@ impl<VCpuType: VirtualCPU> UhyveVm<VCpuType> {
 		// TODO: should be a random start address, if we have a relocatable executable
 		let kernel_start_address = object.start_addr().unwrap_or(0x400000) as usize;
 		let kernel_end_address = kernel_start_address + object.mem_size();
-		self.set_offset(kernel_start_address as u64);
+		self.offset = kernel_start_address as u64;
 
 		if kernel_end_address > self.mem.memory_size - self.mem.guest_address.as_u64() as usize {
 			return Err(LoadKernelError::InsufficientMemory);
@@ -207,7 +191,7 @@ impl<VCpuType: VirtualCPU> UhyveVm<VCpuType> {
 				[kernel_start_address..kernel_end_address],
 			kernel_start_address as u64,
 		);
-		self.set_entry_point(entry_point);
+		self.entry_point = entry_point;
 
 		let boot_info = BootInfo {
 			hardware_info: HardwareInfo {
@@ -231,12 +215,14 @@ impl<VCpuType: VirtualCPU> UhyveVm<VCpuType> {
 			let raw_boot_info_ptr = (self.mem.host_address as *mut u8)
 				.add(BOOT_INFO_ADDR.as_u64() as usize) as *mut RawBootInfo;
 			*raw_boot_info_ptr = RawBootInfo::from(boot_info);
-			self.set_boot_info(raw_boot_info_ptr);
+			self.boot_info = raw_boot_info_ptr;
 		}
 
-		self.set_stack_address((kernel_start_address as u64).checked_sub(KERNEL_STACK_SIZE).expect(
-			"there should be enough space for the boot stack before the kernel start address",
-		));
+		self.stack_address = (kernel_start_address as u64)
+			.checked_sub(KERNEL_STACK_SIZE)
+			.expect(
+				"there should be enough space for the boot stack before the kernel start address",
+			);
 
 		Ok(())
 	}
